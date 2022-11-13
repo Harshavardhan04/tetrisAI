@@ -1,8 +1,7 @@
-from turtle import right
 from board import Direction, Rotation, Action, Block, Board, Shape
 from random import Random
 import time
-from enum import Enum
+
 
 
 
