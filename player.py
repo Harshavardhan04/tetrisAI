@@ -1,597 +1,222 @@
-# from board import Direction, Rotation, Action, Block, Board, Shape
-# from random import Random
-# import time
-
-
-
-
-# class Player:
-#     def choose_action(self, board):
-#         raise NotImplementedError
-
-
-# class RandomPlayer(Player):
-#     def __init__(self, seed=None):
-
-#         self.random = Random(seed)
-
-#     def print_board(self, board):
-#         print("--------")
-#         for y in range(24):
-#             s = ""
-#             for x in range(10):
-#                 if (x,y) in board.cells:
-#                     s += "#"
-#                 else:
-#                     s += "."
-#             print(s, y)
-                
-
-            
-
-#     def choose_action(self, board):
-#         #self.print_board(board)
-#         time.sleep(0.5)
-#         if self.random.random() > 0.97:
-#             # 3% chance we'll discard or drop a bomb
-#             return self.random.choice([
-#                 Action.Discard,
-#                 Action.Bomb,
-#             ])
-#         else:
-#             # 97% chance we'll make a normal move
-#             return self.random.choice([
-#                 Direction.Left,
-#                 Direction.Right,
-#                 Direction.Down,
-#                 Rotation.Anticlockwise,
-#                 Rotation.Clockwise,
-#             ])
-
-# class Player1(Player):
-#     prev =0
-#     prevI=0
-
-
-#     def __init__(self, seed=None):
-#         self.random = Random(seed)
-
-#     def print_board(self, board):
-#         print("--------")
-#         for y in range(24):
-#             s = ""
-#             for x in range(10):
-#                 if (x,y) in board.cells:
-#                     s += "#"
-#                 else:
-#                     s += "."
-#             print(s, y)
-
-#     def score_board(self,board):
-#         maxYoccupied = max(y for (x,y) in board.cells)
-#         heightScore = (1/maxYoccupied)*100
-#         totalScore = board.score+heightScore
-#         return totalScore
-
-#     def possible_moves(self, board):
-#         for pos in range(10):
-#             print(isinstance(board, Board))
-#             curX = board.falling.left
-#             break
-#         self.move_towards_target(pos,curX,board)
-        
-#     def choose_action(self, board):
-#         moves=[]
-#         if board.falling.shape == Shape.I:
-#                 if self.prevI ==0:
-#                     self.prevI =1
-#                     for i in range(board.falling.left):
-#                         moves.append(Direction.Left)
-#                 elif self.prevI==1:
-#                     self.prevI = 0
-#                     dif = 9-board.falling.left
-#                     for i in range(dif):
-#                         moves.append(Direction.Right)
-#         else:
-#             if self.prev ==0:
-#                 self.prev=1
-#                 dif = board.falling.left-1
-#                 for i in range(dif):
-#                     moves.append(Direction.Left)
-#             elif self.prev ==1:
-#                 self.prev=2
-#                 dif = 4-board.falling.left
-#                 for i in range(dif):
-#                     moves.append(Direction.Left)
-#             elif self.prev ==2:
-#                 self.prev=0
-#                 dif = 6-board.falling.left
-#                 for i in range(dif):
-#                     moves.append(Direction.Right)
-#         moves.append(Direction.Drop)
-#         return moves
-        
-
-
-
-# SelectedPlayer = Player1
-from board import Direction, Rotation, Action, Block, Board, Shape
+from board import Direction, Rotation, Shape
 from random import Random
+from math import log
 import time
+
+
+
 
 class Player:
     def choose_action(self, board):
         raise NotImplementedError
 
-
-class RandomPlayer(Player):
-    def __init__(self, seed=None):
-
-        self.random = Random(seed)
-
-    def print_board(self, board):
-        print("--------")
-        for y in range(24):
-            s = ""
-            for x in range(10):
-                if (x,y) in board.cells:
-                    s += "#"
-                else:
-                    s += "."
-            print(s, y)
-                
-
-            
-
-    def choose_action(self, board):
-        #self.print_board(board)
-        time.sleep(0.5)
-        if self.random.random() > 0.97:
-            # 3% chance we'll discard or drop a bomb
-            return self.random.choice([
-                Action.Discard,
-                Action.Bomb,
-            ])
-        else:
-            # 97% chance we'll make a normal move
-            return self.random.choice([
-                Direction.Left,
-                Direction.Right,
-                Direction.Down,
-                Rotation.Anticlockwise,
-                Rotation.Clockwise,
-            ])
-
 class Player1(Player):
-    I_tracker = 0
-    T_tracker = 1
-    next_piece_T = 0
-    L_tracker = 0
-    next_piece_L = 0
-    J_tracker = 1
-    next_piece_J = 0
-    O_tracker = 0
-    Z_tracker = 0
-    next_piece_Z = 0
-    prev =0
-    prev2=0
-    future_move = []
+    def __init__(self):
+        self.q = []
+        self.limit = 4
+        self.b_count = 0
+        self.s_rotations = {
+            Shape.I: 2,
+            Shape.J: 4,
+            Shape.L: 4,
+            Shape.O: 1,
+            Shape.S: 2,
+            Shape.T: 4,
+            Shape.Z: 2}
 
+        self.b_count_max = 390
+        self.weight1 = 0.2127  
+        self.weight2 = 0.85  
+        self.weight3 = 5.5  
+        self.weight4 = 0.205  
+        self.weight5 = 1  
+        self.weight6 = 1  
+        self.weight7 = 0.5 
 
-    def __init__(self, seed=None):
-        self.random = Random(seed)
+    @staticmethod
+    def makeQueue(index, shape, alert: bool = False):
 
-    def print_board(self, board):
-        print("--------")
-        for y in range(24):
-            s = ""
-            for x in range(10):
-                if (x,y) in board.cells:
-                    s += "#"
-                else:
-                    s += "."
-            print(s, y)
+        q = []
 
-    # def move_towards_target(self,pos,curX,board):
-    #     if pos>curX:
-    #         dif = pos-curX
-    #         for i in range(0,dif):
-    #             board.move(Direction.Right)
-    #     else:
-    #         dif = curX-pos
-    #         for i in range(0,dif):
-    #             board.move(Direction.Left)
-    #     board.move(Direction.Drop)
+        if shape != Shape.T and 10 <= index < 30 and not alert:
+            q.append(Rotation.Clockwise)
+            index = index - 10
 
-    def score_board(self,board):
-        maxYoccupied = max(y for (x,y) in board.cells)
-        heightScore = (1/maxYoccupied)*100
-        totalScore = board.score+heightScore
-        return totalScore
+        for y in range(abs((index % 10) - 5)):
+            if (index % 10) - 5 > 0:
+                q.append(Direction.Right)
+            elif (index % 10) - 5 < 0:
+                q.append(Direction.Left)
 
-    def possible_moves(self, board):
-        for pos in range(10):
-            print(isinstance(board, Board))
-            curX = board.falling.left
-            break
-        self.move_towards_target(pos,curX,board)
-                #print(self.score_board(board))
+        if index//10 == 3:
+            q.append(Rotation.Anticlockwise)
+        else:
+            for y in range(index // 10):
+                q.append(Rotation.Clockwise)
 
-    def moveBlock(self,board):
-        heightScore=0
-        totalScore=0
-        moves = []
-        listForScoring = []
-        tempMovesList = []
-        topScore=0
-        for i in range(10):
-            sandbox = board.clone()
-            if i>sandbox.falling.left:
-                dif = i-sandbox.falling.left
-                for j in range(dif):
-                    sandbox.move(Direction.Right)
-                    tempMovesList.append(Direction.Right)
-                    print(sandbox.falling.left)
-                sandbox.move(Direction.Drop)
-            elif i <sandbox.falling.left:
-                dif = sandbox.falling.left-i
-                for j in range(dif):
-                    sandbox.move(Direction.Left)
-                    tempMovesList.append(Direction.Left)
-                sandbox.move(Direction.Drop)
+        return q
+
+    def popQ(self):
+        if len(self.q) > 0:
+            move = self.q[0]
+            del self.q[0]
+            return move
+
+        return Direction.Drop
+
+    @staticmethod
+    def rotMove(board, move):
+        if board.falling is not None:
+            if move == Rotation.Clockwise or move == Rotation.Anticlockwise:
+                return board.rotate(move)
             else:
-                print("huh")
-                sandbox.move(Direction.Drop)
-        
-            
-            #print("Temp Moves List: ",listForScoring)
-            maxYoccupied = max(y for (x,y) in sandbox.cells)
-            heightScore = (1/maxYoccupied)*100
-            totalScore = sandbox.score+heightScore
-            if totalScore>topScore:
-                print("this does get called")
-                topScore = totalScore
-                print("Top Score: ",topScore)
-                listForScoring.clear()
-                listForScoring.extend(tempMovesList)
+                return board.move(move)
+        return
+
+    #gather values for the heurestic
+
+    # gets the max height on the board
+    @staticmethod
+    def getMaxHeight(board) -> int:
+        maxHeight = 23
+        for y in board.cells:
+            if y[1] < maxHeight:
+                maxHeight = y[1]
+        return maxHeight
+
+    # get the height of each column
+    @staticmethod
+    def getHeights(board) -> list:
+        heights = [23 for _ in range(10)]
+
+        for x, y in board.cells:
+            if y < heights[x]:
+                heights[x] = y
+
+        return heights
+
+    # claculate height difference between columns
+    @staticmethod
+    def getBumpinessLvl(heights: list) -> int:
+        bumpiness = 0
+        for i in range(9):
+            bumpiness += abs(heights[i] - heights[i + 1])
+        return bumpiness
+
+    # count holes
+    @staticmethod
+    def getHoles(board, heights: list, maxHeight: int) -> int:
+        bubbles = 0
+        for column in range(10):
+            for row in range(23, maxHeight - 1, -1):
+                if (column, row) not in board.cells and row >= heights[column] < 23:
+                    bubbles = bubbles + 1
+        return bubbles
+
+    def convertScore(self, score: int) -> float:
+        score = score//100  # 100, 400, 800, 1600 -> 1,4,8,16
+        if score != 0:
+            score = log(score, 2)  # 1, 4, 8, 16 -> 0,2,3,4
+            if score == 0:  # since the 100 points converts to 0, we need to increment it to fit the sequence 1,2,3,4
+                score += 1
+
+            # we want to discourage smaller combos up until it the end where we need to clear the board.
+            if score < self.limit:
+                score = ((-1.25) / (score + 1.8))*10.85
             else:
-                continue
-        # for item in listForScoring:
-        #     yield item
-        # print(listForScoring)
-        
-    
+                score = 2**score
+                score *= 100
+
+        return score
+
+    @staticmethod
+    def getHeight(heights, height):
+        for i in range(len(heights)):
+            if height == heights[i]:
+                return i
+
+    def getMoves(self, board, recurse: bool = True):
+        self.q = []
+        if recurse:
+            self.b_count += 1
+
+        oldHeight = self.getMaxHeight(board)
+
+        try:
+            rotationNum = self.s_rotations[board.falling.shape]
+        except AttributeError:
+            rotationNum = 4
+
+        totalScores = [0 for _ in range(rotationNum * 10)]
+
+        alert = False
+        if oldHeight < 6:
+            alert = True
+
+        if recurse and oldHeight < 14:
+            self.limit = 3
+
+        if self.b_count >= self.b_count_max:
+            self.limit = 1
+            self.weight5 = 15
+
+        qs = [[] for i in range(rotationNum*10)]
+        for rotations in range(rotationNum):
+            for position in range(10):
+                clone = board.clone()
+                index = (rotations * 10) + position
+
+                #15313
+                q = self.makeQueue(index, clone.falling, alert)
+
+                for move in q:
+                    self.rotMove(clone, move)
+
+                self.rotMove(clone, Direction.Drop)
+
+                raw_score = clone.score - board.score
+
+                score = self.convertScore(raw_score)
+                heights = self.getHeights(clone)
+                maxHeight = self.getMaxHeight(clone)
+                bumpiness = self.getBumpinessLvl(heights)
+                bubbles = self.getHoles(clone, heights, maxHeight)
+                avgHeight = sum(heights) / 10
+                avgDif = abs(maxHeight - avgHeight)
+
+                nextScore = 0
+
+                if recurse:
+                    nextScore = self.getMoves(clone, False)
+
+                if avgHeight > 19 and score < 0:
+                    avgHeight = 23 - avgHeight
+
+                if clone.alive == False:
+                    totalScores[index] = -9000
+
+                totalScores[index] += (maxHeight * self.weight1) + (bumpiness * -self.weight2) + (bubbles * -self.weight3) + \
+                                          (avgHeight * self.weight4) + (score * self.weight5) + (nextScore * self.weight6) + \
+                                          (avgDif * -self.weight7)
+
+        best_score = max(totalScores)
+        index = totalScores.index(best_score)
+
+        if recurse:
+            self.limit = 4
+
+        if not recurse:
+            return best_score
+
+        self.q = self.makeQueue(index, board.falling, alert)
 
     def choose_action(self, board):
-            moves=[]
-            heightLeft = 0
-            heightRight=0
-            height = 0
-            # for y in range (20,board.height):
-            #     for x in range (board.width):
-            #         if (x, y) in board.cells:
-            #             moves.append(Action.Bomb)
-        # else:
-            if self.next_piece_Z==1:
-                if board.falling.shape == Shape.Z:
-                    moves.extend(self.future_move)
 
-            elif board.falling.shape == Shape.I:
-                # for (x,y) in board.cells:
-                #         if x ==0:
-                #             if y > heightLeft:
-                #                 heightLeft = y
-                #         elif x==9:
-                #             if y > heightRight:
-                #                 heightRight = y
-                if self.I_tracker==0:
-                    self.I_tracker=1
-                    dif = board.falling.left
-                    # if heightLeft > 20:
-                    #     dif = dif - 1
-                    for i in range(dif):
-                        moves.append(Direction.Left)
-                elif self.I_tracker==1:
-                    self.I_tracker=2
-                    dif = 9-board.falling.left
-                    # if heightRight > 20:
-                    #     dif = dif-1
-                    for i in range(dif):
-                        moves.append(Direction.Right)
-                elif self.I_tracker==2:
-                    self.I_tracker=0
-                    dif = 6-board.falling.left
-                    for i in range(dif):
-                        moves.append(Direction.Right)
-                    
-            elif board.falling.shape == Shape.T:
-                if self.T_tracker==0:
-                    self.T_tracker=1
-                    moves.append(Rotation.Anticlockwise)
-                    dif = board.falling.left
-                    for i in range(dif):
-                        moves.append(Direction.Left)
-                    if board.next.shape == Shape.Z:
-                        self.next_piece_Z=1
-                        self.future_move.append(Rotation.Anticlockwise)
-                        dif = board.falling.left-1
-                        for i in range(dif):
-                            self.future_move.append(Direction.Left)
-                    if board.next.shape == Shape.L:
-                        self.next_piece_L=1
+        for x, y in board.falling.cells:
+            if y == 0:
+                self.getMoves(board)
+                break
 
-                elif self.T_tracker ==1:
-                    self.T_tracker=0
-                    moves.append(Rotation.Clockwise)
-                    dif = 9-board.falling.right
-                    for i in range(dif):
-                        moves.append(Direction.Right)
-                    if board.next.shape == Shape.Z:
-                        self.next_piece_Z=1
-                        self.future_move.append(Rotation.Clockwise)
-                        dif = 8-board.falling.right
-                        for i in range(dif):
-                            self.future_move.append(Direction.Right)
-            elif board.falling.shape==Shape.J:
-                    dif = board.falling.left-2
-                    # if(self.next_piece_J==1):
-                    #     moves.extend([Rotation.Clockwise,Rotation.Clockwise])
-                    # else:
-                    moves.append(Rotation.Clockwise)
-                    # if heightLeft > 20:
-                    #     dif = dif - 1
-                    for i in range(dif-1):
-                        moves.append(Direction.Left)
-            elif board.falling.shape==Shape.L:
-                    dif = 7-board.falling.right
-                    moves.append(Rotation.Anticlockwise)
-                    # if heightLeft > 20:
-                    #     dif = dif - 1
-                    for i in range(dif-1):
-                        moves.append(Direction.Right)
-            elif board.falling.shape==Shape.S:
-                dif = board.falling.left-1
-                moves.append(Rotation.Anticlockwise)
-                for i in range(dif):
-                        moves.append(Direction.Left)
-            elif board.falling.shape == Shape.O:
-                if self.O_tracker==0:
-                    self.O_tracker=1
-                    dif = board.falling.left-4
-                    for i in range(dif):
-                            moves.append(Direction.Left)
-                elif self.O_tracker==1:
-                    self.O_tracker=0
-                    dif = 8-board.falling.left
-                    for i in range(dif):
-                            moves.append(Direction.Right)
-                if board.next.shape == Shape.J:
-                    self.next_piece_J =1
-                elif board.falling.shape==Shape.S:
-                    dif = 8-board.falling.right
-                    moves.append(Rotation.Clockwise)
-                    for i in range(dif):
-                            moves.append(Direction.Right)
-                
-                
-
-                
-
-            else:
-                # if board.falling.shape == Shape.T:
-                #     moves.extend([Rotation.Clockwise, Rotation.Clockwise])
-                if board.falling.shape == Shape.L:
-                    moves.append(Rotation.Clockwise)
-                if board.falling.shape == Shape.J:
-                    moves.append(Rotation.Anticlockwise)
-                randNo = self.random.randint(0,3)
-                if self.prev2 ==0:
-                    self.prev2=1
-                    dif = board.falling.left -2
-                    for j in range(dif):
-                        moves.append(Direction.Left)
-                elif self.prev2 ==1:
-                    self.prev2 =2
-                    if board.falling.left >4:
-                        dif = board.falling.left -4
-                        for j in range(dif):
-                            moves.append(Direction.Left)
-                    elif board.falling.left<4:
-                        dif = 4-board.falling.left
-                        for j in range(dif):
-                            moves.append(Direction.Right)
-                elif self.prev2 ==2:
-                    self.prev2 =0
-                    dif = 6-board.falling.left
-                    for j in range(dif):
-                        moves.append(Direction.Right)
-            moves.append(Direction.Drop)
-            return moves
-
-
-
-
-            #return self.possible_moves(board2)
-            #rotations = [0,1,2,3]
-            # height =0
-            # for (x,y) in board.cells:
-            #         if y > height:
-            #             height = y
-            # if (height<20):          
-            #     self.moveBlock(board)
-                
-                
-                # for i in range(10):       
-                #     if i>board.falling.left:
-                #         dif = i-board.falling.left
-                #         for j in range(dif):
-                #             yield Direction.Right
-                #         print("left coordinate", board.falling.left)
-                #         yield Direction.Drop
-                #     elif i <board.falling.left:
-                #         dif = board.falling.left-i
-                #         #print("Difference: ",dif)
-                #         for j in range(dif):
-                #             yield Direction.Left
-                #         print("left coordinate", board.falling.left)
-                #         yield Direction.Drop
-                #     else:
-                #         yield Direction.Drop
-
-                # a = self.random.randint(0,9)
-                # move = []
-                # if(board.falling.shape==Shape.I):
-                #     return Rotation.Clockwise
-                # if a>board.falling.left:
-                #     #print(type(Shape.I))
-                #     #print(type(board.falling.shape))
-                #     #assert(board.falling.shape == board.falling.shape.I)
-                
-                #     #print(Shape.shape_to_cells)
-                #     # print(board.falling.shape)
-                    
-                
-                
-                #     dif = a - board.falling.left
-                #     for j in range(dif):
-                #         move.append(Direction.Right)
-                    
-                #     # if board.falling.shape == Shape.I:
-                #     #     yield Rotation.Clockwise
-                #     # else: 
-                #     #     return move
-                # else:
-                #     dif = board.falling.left - a
-                #     for j in range(dif):
-                #         move.append(Direction.Left)
-                #     # if board.falling.shape == Shape.I:
-                #     #     yield Rotation.Clockwise
-                #     #     return move
-                #     # else: 
-                # return move
-                
-
-
-            
-
-                # if board.falling.shape == Shape.I:
-                #     if self.prev ==0:
-                #         self.prev =1
-                #         for i in range(board.falling.left):
-                #             moves.append(Direction.Left)
-                #     elif self.prev==1:
-                #         self.prev = 0
-                #         dif = 9-board.falling.left
-                #         for i in range(dif):
-                #             moves.append(Direction.Right)
-                # elif board.falling.shape == Shape.O:
-                #     if self.prev ==0:
-                #         self.prev =1
-                #         dif = board.falling.left -1
-                #         for i in range(dif):
-                #             moves.append(Direction.Left)
-                #     elif self.prev==1:
-                #         self.prev =0
-                #         dif = 8-board.falling.left
-                #         for i in range(dif):
-                #             moves.append(Direction.Right)
-                # elif board.falling.shape == Shape.T:
-                #     if board.next.shape == Shape.L:
-                #         if self.prev == 0:
-                #             self.prev=1
-                #             moves.append(Rotation.Anticlockwise)
-                #             dif = board.falling.left -3
-                #             for i in range(dif):
-                #                 moves.append(Direction.Left)
-                #         elif self.prev==1:
-                #             self.prev =0
-                #             moves.append(Rotation.Clockwise)
-                #             dif = board.falling.left-3
-                #         for i in range(dif): 
-                #             moves.append(Direction.Left)      
-
-                # else:
-                #     # if board.falling.shape == Shape.T:
-                #     #     moves.extend([Rotation.Clockwise, Rotation.Clockwise])
-                #     if board.falling.shape == Shape.L:
-                #         moves.append(Rotation.Clockwise)
-                #     if board.falling.shape == Shape.J:
-                #         moves.append(Rotation.Anticlockwise)
-                #     randNo = self.random.randint(0,3)
-                #     if self.prev2 ==0:
-                #         self.prev2=1
-                #         dif = board.falling.left -1
-                #         for j in range(dif):
-                #             moves.append(Direction.Left)
-                #     elif self.prev2 ==1:
-                #         self.prev2 =2
-                #         if board.falling.left >4:
-                #             dif = board.falling.left -4
-                #             for j in range(dif):
-                #                 moves.append(Direction.Left)
-                #         elif board.falling.left<4:
-                #             dif = 4-board.falling.left
-                #             for j in range(dif):
-                #                 moves.append(Direction.Right)
-                #     elif self.prev2 ==2:
-                #         self.prev2 =0
-                #         dif = 7-board.falling.left
-                #         for j in range(dif):
-                #             moves.append(Direction.Right)
-                # moves.append(Direction.Drop)
-                # print("next shape:", board.next.shape)
-
-
-            #self.print_board(board)
-            # time.sleep(0.5)
-            # board2 = board.clone()
-            # print(board2.falling.cells)
-            # board2.move(Direction.Right)
-            # print(board2.falling.cells)
-            # board2.move(Rotation.Clockwise)
-            # print(board2.falling.cells)
-            # print(board.falling.shape)
-            # print(board.falling.cells)
-            # print("occupied cells: ",board.cells)
-            # print("score", board.score)
-            # print("board height",board.cells.height)
-
-        
-            
-            
-            # print(Block.move(board,right,board,count=1))
-                
-                
-            # Delete possible moves function and integrate it into the choose action function 
-            # Remember to clone board for each possible move tested 
-            #for all moves 
-                # for all rotations
-                        # clone
-                        #move 
-                        #score
-                        #identify best move 
-            #make best move
-            
-       
-
-
-
-        # if self.random.random() > 0.97:
-        #     # 3% chance we'll discard or drop a bomb
-        #     return self.random.choice([
-        #         Action.Discard,
-        #         Action.Bomb,
-        #     ])
-        # else:
-        #     # 97% chance we'll make a normal move
-        #     return self.random.choice([
-        #         Direction.Left,
-        #         Direction.Right,
-        #         Direction.Down,
-        #         Rotation.Anticlockwise,
-        #         Rotation.Clockwise,
-        #     ])
-
+        return self.popQ()
 
 SelectedPlayer = Player1
-
