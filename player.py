@@ -92,21 +92,22 @@ class Player1(Player):
                     dif = 9-board.falling.left
                     for i in range(dif):
                         moves.append(Direction.Right)
-        if self.prev ==0:
-            self.prev=1
-            dif = board.falling.left-1
-            for i in range(dif):
-                moves.append(Direction.Left)
-        elif self.prev ==1:
-            self.prev=2
-            dif = 4-board.falling.left
-            for i in range(dif):
-                moves.append(Direction.Left)
-        elif self.prev ==2:
-            self.prev=0
-            dif = 6-board.falling.left
-            for i in range(dif):
-                moves.append(Direction.Right)
+        else:
+            if self.prev ==0:
+                self.prev=1
+                dif = board.falling.left-1
+                for i in range(dif):
+                    moves.append(Direction.Left)
+            elif self.prev ==1:
+                self.prev=2
+                dif = 4-board.falling.left
+                for i in range(dif):
+                    moves.append(Direction.Left)
+            elif self.prev ==2:
+                self.prev=0
+                dif = 6-board.falling.left
+                for i in range(dif):
+                    moves.append(Direction.Right)
         moves.append(Direction.Drop)
         return moves
         
