@@ -25,7 +25,7 @@ class Player1(Player):
             Shape.Z: 2}
 
         self.b_count_max = 390
-        self.weight1 = 0.2127  
+        self.weight1 = 0.2128  
         self.weight2 = 0.85  
         self.weight3 = 5.5  
         self.weight4 = 0.205  
