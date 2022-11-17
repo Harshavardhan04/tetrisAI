@@ -15,6 +15,17 @@ class Player1(Player):
         self.q = []
         self.limit = 4
         self.b_count = 0
+
+        #Weights
+        self.b_count_max = 350
+        self.maxHeightWeight = 0.2  
+        self.bumpinessWeight = 0.9  
+        self.bubbleWeight = 5  
+        self.avgHeightWeight = 0.105  
+        self.scoreWeight = 1  
+        self.nextScoreWeight = 1.2
+
+        #Number of rotations for each shape
         self.s_rotations = {
             Shape.I: 2,
             Shape.J: 4,
@@ -24,22 +35,6 @@ class Player1(Player):
             Shape.T: 4,
             Shape.Z: 2}
 
-        # self.b_count_max = 390
-        # self.maxHeightWeight = 0.2128  
-        # self.bumpinessWeight = 0.85  
-        # self.bubbleWeight = 5.5  
-        # self.avgHeightWeight = 0.205  
-        # self.scoreWeight = 1  
-        # self.nextScoreWeight = 1  
-        # self.weight7 = 0.5 
-        self.b_count_max = 350
-        self.maxHeightWeight = 0.2  
-        self.bumpinessWeight = 0.9  
-        self.bubbleWeight = 5  
-        self.avgHeightWeight = 0.105  
-        self.scoreWeight = 1  
-        self.nextScoreWeight = 1.2
-        self.weight7 = 0.3 
     @staticmethod
     def makeQueue(index, shape, alert: bool = False):
 
@@ -72,17 +67,16 @@ class Player1(Player):
         return Direction.Drop
 
     @staticmethod
-    def rotMove(board, move):
+    def rotMove(board, moveToMake):
         if board.falling is not None:
-            if move == Rotation.Clockwise or move == Rotation.Anticlockwise:
-                return board.rotate(move)
+            if moveToMake == Rotation.Clockwise or moveToMake == Rotation.Anticlockwise:
+                return board.rotate(moveToMake)
             else:
-                return board.move(move)
+                return board.move(moveToMake)
         
 
-    #gather values for the heurestic
+    #gather values for scoring purpose
 
-    # gets the max height on the board
     @staticmethod
     def getMaxHeight(board) -> int:
         maxHeight = 23
@@ -98,17 +92,13 @@ class Player1(Player):
                 xIndex= x
         return xIndex
         
-            
-
-    # get the height of each column
+    # height of each column
     @staticmethod
     def getHeights(board) -> list:
         heights = [23 for _ in range(10)]
-
         for x, y in board.cells:
             if y < heights[x]:
                 heights[x] = y
-
         return heights
 
     # calculate height difference between columns
@@ -130,27 +120,24 @@ class Player1(Player):
         return holesCount
 
     def convertScore(self, score: int) -> float:
-        modScore = score//100  # 25, 100, 400, 1600 -- > 1,4,16, 64 # 100, 400, 800, 1600 -> 1,4,8,16
-        if modScore ==0:# need to increment value to 1 if it's 0
+        modScore = score//100  # 25, 100, 400, 1600 -- > 1,4,16, 64 
+        if modScore ==0:
             modScore+=1
         else:
             modScore = log(modScore,2) #4,16,64 -> 2,4,6 
-            # we want to discourage smaller combos up until it the end where we need to clear the board.
+        
             if modScore > self.limit:
                 modScore = 2**modScore
                 modScore *= 100
             else:
                 modScore = ((-1.2) / (modScore + 1.85))*11
-
         return modScore
 
     def getMoves(self, board, recurse: bool = True):
         self.q = []
         if recurse:
             self.b_count += 1
-
         oldHeight = self.getMaxHeight(board)
-
         try:
             rotationNum = self.s_rotations[board.falling.shape]
         except AttributeError:
@@ -167,29 +154,24 @@ class Player1(Player):
 
         if self.b_count >= self.b_count_max:
             self.limit = 1
-            #self.scoreWeight = 15
 
-        qs = [[] for i in range(rotationNum*10)]
         for rotations in range(rotationNum):
             for xPos in range(10):
                 clonedBoard = board.clone()
                 index = (rotations * 10) + xPos
-
-                #15313
                 q = self.makeQueue(index, clonedBoard.falling, alert)
 
                 for move in q:
                     self.rotMove(clonedBoard, move)
-
                 self.rotMove(clonedBoard, Direction.Drop)
 
                 actualScore = clonedBoard.score - board.score
                 scoreConv = self.convertScore(actualScore)
-                heights = self.getHeights(clonedBoard)
+                colHeights = self.getHeights(clonedBoard)
                 maxHeight = self.getMaxHeight(clonedBoard)
-                bumpiness = self.getBumpinessLvl(heights)
-                holesCount = self.getHoles(clonedBoard, heights, maxHeight)
-                avgHeight = sum(heights) / 10
+                bumpiness = self.getBumpinessLvl(colHeights)
+                holesCount = self.getHoles(clonedBoard, colHeights, maxHeight)
+                avgHeight = sum(colHeights) / 10
 
 
                 nextScore = 0
@@ -197,18 +179,18 @@ class Player1(Player):
                 if recurse:
                     nextScore = self.getMoves(clonedBoard, False)
 
+                if clonedBoard.alive == False:
+                    totalScores[index] = -8000
+
                 if avgHeight > 19 and scoreConv < 0:
                     avgHeight = 23 - avgHeight
-
-                if clonedBoard.alive == False:
-                    totalScores[index] = -9000
 
                 totalScores[index] += (maxHeight * self.maxHeightWeight) + (bumpiness * -self.bumpinessWeight) + (holesCount * -self.bubbleWeight) + \
                                           (avgHeight * self.avgHeightWeight) + (scoreConv * self.scoreWeight) + (nextScore * self.nextScoreWeight) 
 
 
         topScore = max(totalScores)
-        index = totalScores.index(topScore)
+        tsIndex = totalScores.index(topScore)
 
         if recurse:
             self.limit = 4
@@ -216,7 +198,7 @@ class Player1(Player):
         if not recurse:
             return topScore
 
-        self.q = self.makeQueue(index, board.falling, alert)
+        self.q = self.makeQueue(tsIndex, board.falling, alert)
 
     def choose_action(self, board):
 
@@ -224,7 +206,6 @@ class Player1(Player):
             if y == 0:
                 self.getMoves(board)
                 break
-
         return self.popQ()
 
 SelectedPlayer = Player1
