@@ -24,15 +24,22 @@ class Player1(Player):
             Shape.T: 4,
             Shape.Z: 2}
 
-        self.b_count_max = 390
-        self.weight1 = 0.2128  
-        self.weight2 = 0.85  
-        self.weight3 = 5.5  
-        self.weight4 = 0.205  
-        self.weight5 = 1  
-        self.weight6 = 1  
-        self.weight7 = 0.5 
-
+        # self.b_count_max = 390
+        # self.maxHeightWeight = 0.2128  
+        # self.bumpinessWeight = 0.85  
+        # self.bubbleWeight = 5.5  
+        # self.avgHeightWeight = 0.205  
+        # self.scoreWeight = 1  
+        # self.nextScoreWeight = 1  
+        # self.weight7 = 0.5 
+        self.b_count_max = 350
+        self.maxHeightWeight = 0.2  
+        self.bumpinessWeight = 0.9  
+        self.bubbleWeight = 5  
+        self.avgHeightWeight = 0.105  
+        self.scoreWeight = 1  
+        self.nextScoreWeight = 1
+        self.weight7 = 0.3 
     @staticmethod
     def makeQueue(index, shape, alert: bool = False):
 
@@ -58,9 +65,9 @@ class Player1(Player):
 
     def popQ(self):
         if len(self.q) > 0:
-            move = self.q[0]
+            nextMove = self.q[0]
             del self.q[0]
-            return move
+            return nextMove
 
         return Direction.Drop
 
@@ -71,7 +78,7 @@ class Player1(Player):
                 return board.rotate(move)
             else:
                 return board.move(move)
-        return
+        
 
     #gather values for the heurestic
 
@@ -79,10 +86,19 @@ class Player1(Player):
     @staticmethod
     def getMaxHeight(board) -> int:
         maxHeight = 23
-        for y in board.cells:
-            if y[1] < maxHeight:
-                maxHeight = y[1]
+        for (x,y) in board.cells:
+            if y < maxHeight:
+                maxHeight = y
         return maxHeight
+
+    def dropBomb(board):
+        xIndex = 0
+        for (x,y) in board.cells:
+            if y > 20:
+                xIndex= x
+        return xIndex
+        
+            
 
     # get the height of each column
     @staticmethod
@@ -95,7 +111,7 @@ class Player1(Player):
 
         return heights
 
-    # claculate height difference between columns
+    # calculate height difference between columns
     @staticmethod
     def getBumpinessLvl(heights: list) -> int:
         bumpiness = 0
@@ -106,34 +122,27 @@ class Player1(Player):
     # count holes
     @staticmethod
     def getHoles(board, heights: list, maxHeight: int) -> int:
-        bubbles = 0
-        for column in range(10):
-            for row in range(23, maxHeight - 1, -1):
-                if (column, row) not in board.cells and row >= heights[column] < 23:
-                    bubbles = bubbles + 1
-        return bubbles
+        holesCount = 0
+        for x in range(10):
+            for y in range(23, maxHeight - 1, -1):
+                if (x, y) not in board.cells and y >= heights[x] < 23:
+                    holesCount = holesCount + 1
+        return holesCount
 
     def convertScore(self, score: int) -> float:
-        score = score//100  # 100, 400, 800, 1600 -> 1,4,8,16
-        if score != 0:
-            score = log(score, 2)  # 1, 4, 8, 16 -> 0,2,3,4
-            if score == 0:  # since the 100 points converts to 0, we need to increment it to fit the sequence 1,2,3,4
-                score += 1
-
+        modScore = score//100  # 25, 100, 400, 1600 -- > 1,4,16, 64 # 100, 400, 800, 1600 -> 1,4,8,16
+        if modScore ==0:# need to increment value to 1 if it's 0
+            modScore+=1
+        else:
+            modScore = log(modScore,2) #4,16,64 -> 2,4,6 
             # we want to discourage smaller combos up until it the end where we need to clear the board.
-            if score < self.limit:
-                score = ((-1.25) / (score + 1.8))*10.85
+            if modScore > self.limit:
+                modScore = 2**modScore
+                modScore *= 100
             else:
-                score = 2**score
-                score *= 100
+                modScore = ((-1.2) / (modScore + 1.85))*11
 
-        return score
-
-    @staticmethod
-    def getHeight(heights, height):
-        for i in range(len(heights)):
-            if height == heights[i]:
-                return i
+        return modScore
 
     def getMoves(self, board, recurse: bool = True):
         self.q = []
@@ -158,55 +167,54 @@ class Player1(Player):
 
         if self.b_count >= self.b_count_max:
             self.limit = 1
-            self.weight5 = 15
+            #self.scoreWeight = 15
 
         qs = [[] for i in range(rotationNum*10)]
         for rotations in range(rotationNum):
-            for position in range(10):
-                clone = board.clone()
-                index = (rotations * 10) + position
+            for xPos in range(10):
+                clonedBoard = board.clone()
+                index = (rotations * 10) + xPos
 
                 #15313
-                q = self.makeQueue(index, clone.falling, alert)
+                q = self.makeQueue(index, clonedBoard.falling, alert)
 
                 for move in q:
-                    self.rotMove(clone, move)
+                    self.rotMove(clonedBoard, move)
 
-                self.rotMove(clone, Direction.Drop)
+                self.rotMove(clonedBoard, Direction.Drop)
 
-                raw_score = clone.score - board.score
-
-                score = self.convertScore(raw_score)
-                heights = self.getHeights(clone)
-                maxHeight = self.getMaxHeight(clone)
+                actualScore = clonedBoard.score - board.score
+                scoreConv = self.convertScore(actualScore)
+                heights = self.getHeights(clonedBoard)
+                maxHeight = self.getMaxHeight(clonedBoard)
                 bumpiness = self.getBumpinessLvl(heights)
-                bubbles = self.getHoles(clone, heights, maxHeight)
+                holesCount = self.getHoles(clonedBoard, heights, maxHeight)
                 avgHeight = sum(heights) / 10
-                avgDif = abs(maxHeight - avgHeight)
+
 
                 nextScore = 0
 
                 if recurse:
-                    nextScore = self.getMoves(clone, False)
+                    nextScore = self.getMoves(clonedBoard, False)
 
-                if avgHeight > 19 and score < 0:
+                if avgHeight > 19 and scoreConv < 0:
                     avgHeight = 23 - avgHeight
 
-                if clone.alive == False:
+                if clonedBoard.alive == False:
                     totalScores[index] = -9000
 
-                totalScores[index] += (maxHeight * self.weight1) + (bumpiness * -self.weight2) + (bubbles * -self.weight3) + \
-                                          (avgHeight * self.weight4) + (score * self.weight5) + (nextScore * self.weight6) + \
-                                          (avgDif * -self.weight7)
+                totalScores[index] += (maxHeight * self.maxHeightWeight) + (bumpiness * -self.bumpinessWeight) + (holesCount * -self.bubbleWeight) + \
+                                          (avgHeight * self.avgHeightWeight) + (scoreConv * self.scoreWeight) + (nextScore * self.nextScoreWeight) 
 
-        best_score = max(totalScores)
-        index = totalScores.index(best_score)
+
+        topScore = max(totalScores)
+        index = totalScores.index(topScore)
 
         if recurse:
             self.limit = 4
 
         if not recurse:
-            return best_score
+            return topScore
 
         self.q = self.makeQueue(index, board.falling, alert)
 
