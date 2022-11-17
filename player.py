@@ -38,7 +38,7 @@ class Player1(Player):
         self.bubbleWeight = 5  
         self.avgHeightWeight = 0.105  
         self.scoreWeight = 1  
-        self.nextScoreWeight = 1
+        self.nextScoreWeight = 1.2
         self.weight7 = 0.3 
     @staticmethod
     def makeQueue(index, shape, alert: bool = False):
