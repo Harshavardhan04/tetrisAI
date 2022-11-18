@@ -18,11 +18,11 @@ class Player1(Player):
 
         #Weights
         self.b_count_max = 350
-        self.maxHeightWeight = 0.4  
+        self.maxHeightWeight = 0.2  
         self.bumpinessWeight = 0.9  
         self.bubbleWeight = 5  
         self.avgHeightWeight = 0.105  
-        self.scoreWeight = 1  
+        self.scoreWeight = 1.2  
         self.nextScoreWeight = 1.2
 
         #Number of rotations for each shape
