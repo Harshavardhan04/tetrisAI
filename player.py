@@ -18,7 +18,7 @@ class Player1(Player):
 
         #Weights
         self.b_count_max = 350
-        self.maxHeightWeight = 0.2  
+        self.maxHeightWeight = 0.4  
         self.bumpinessWeight = 0.9  
         self.bubbleWeight = 5  
         self.avgHeightWeight = 0.105  
@@ -209,3 +209,5 @@ class Player1(Player):
         return self.popQ()
 
 SelectedPlayer = Player1
+
+
