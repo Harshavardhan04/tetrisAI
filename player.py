@@ -177,7 +177,7 @@ class Player1(Player):
                     avgHeight = 23 - avgHeight
 
                 totalScores[index] += (maxHeight * 0.2) + (bumpiness * -0.9) + (holesCount * -5) + \
-                                          (avgHeight * 0.105) + (scoreConv * 1) + (nextScore * 1.25) 
+                                          (avgHeight * 0.105) + (scoreConv * 1) + (nextScore * 1.2) 
 
 
         topScore = max(totalScores)
