@@ -15,15 +15,7 @@ class Player1(Player):
         self.q = []
         self.limit = 4
         self.b_count = 0
-
-        #Weights
-        self.b_count_max = 350
-        self.maxHeightWeight = 0.2  
-        self.bumpinessWeight = 0.9  
-        self.bubbleWeight = 5  
-        self.avgHeightWeight = 0.105  
-        self.scoreWeight = 1.2  
-        self.nextScoreWeight = 1.2
+        self.b_count_max = 375
 
         #Number of rotations for each shape
         self.s_rotations = {
@@ -36,24 +28,24 @@ class Player1(Player):
             Shape.Z: 2}
 
     @staticmethod
-    def makeQueue(index, shape, alert: bool = False):
+    def makeQueue(i, shape, alert: bool = False):
 
         q = []
 
-        if shape != Shape.T and 10 <= index < 30 and not alert:
+        if shape != Shape.T and 10 <= i < 30 and not alert:
             q.append(Rotation.Clockwise)
-            index = index - 10
+            i = i - 10
 
-        for y in range(abs((index % 10) - 5)):
-            if (index % 10) - 5 > 0:
+        for y in range(abs((i % 10) - 5)):
+            if (i % 10) - 5 > 0:
                 q.append(Direction.Right)
-            elif (index % 10) - 5 < 0:
+            elif (i % 10) - 5 < 0:
                 q.append(Direction.Left)
 
-        if index//10 == 3:
+        if i//10 == 3:
             q.append(Rotation.Anticlockwise)
         else:
-            for y in range(index // 10):
+            for y in range(i // 10):
                 q.append(Rotation.Clockwise)
 
         return q
@@ -73,25 +65,16 @@ class Player1(Player):
                 return board.rotate(moveToMake)
             else:
                 return board.move(moveToMake)
-        
-
-    #gather values for scoring purpose
-
-    @staticmethod
-    def getMaxHeight(board) -> int:
-        maxHeight = 23
-        for (x,y) in board.cells:
-            if y < maxHeight:
-                maxHeight = y
-        return maxHeight
 
     def dropBomb(board):
         xIndex = 0
         for (x,y) in board.cells:
             if y > 20:
                 xIndex= x
-        return xIndex
-        
+        return xIndex    
+
+    #gather values for scoring purpose
+
     # height of each column
     @staticmethod
     def getHeights(board) -> list:
@@ -100,6 +83,14 @@ class Player1(Player):
             if y < heights[x]:
                 heights[x] = y
         return heights
+
+    @staticmethod
+    def getMaxHeight(board) -> int:
+        maxHeight = 23
+        for (x,y) in board.cells:
+            if y < maxHeight:
+                maxHeight = y
+        return maxHeight
 
     # calculate height difference between columns
     @staticmethod
@@ -185,8 +176,8 @@ class Player1(Player):
                 if avgHeight > 19 and scoreConv < 0:
                     avgHeight = 23 - avgHeight
 
-                totalScores[index] += (maxHeight * self.maxHeightWeight) + (bumpiness * -self.bumpinessWeight) + (holesCount * -self.bubbleWeight) + \
-                                          (avgHeight * self.avgHeightWeight) + (scoreConv * self.scoreWeight) + (nextScore * self.nextScoreWeight) 
+                totalScores[index] += (maxHeight * 0.2) + (bumpiness * -0.9) + (holesCount * -5) + \
+                                          (avgHeight * 0.105) + (scoreConv * 1) + (nextScore * 1.25) 
 
 
         topScore = max(totalScores)
