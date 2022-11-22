@@ -176,8 +176,10 @@ class Player1(Player):
                 if avgHeight > 19 and scoreConv < 0:
                     avgHeight = 23 - avgHeight
 
-                totalScores[index] += (maxHeight * 0.2) + (bumpiness * -0.9) + (holesCount * -5) + \
-                                          (avgHeight * 0.105) + (scoreConv * 1) + (nextScore * 1.2) 
+                # totalScores[index] += (maxHeight * 0.2) + (bumpiness * -0.9) + (holesCount * -5) + \
+                #                           (avgHeight * 0.105) + (scoreConv * 1) + (nextScore * 1.2) 
+                totalScores[index] += (maxHeight * 0.2) + (bumpiness * -0.9) + (holesCount * -5.1) + \
+                                          (avgHeight * 0.11) + (scoreConv * 1) + (nextScore * 1.2) 
 
 
         topScore = max(totalScores)
