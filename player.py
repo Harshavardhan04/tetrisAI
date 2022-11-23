@@ -16,6 +16,9 @@ class Player1(Player):
         self.limit = 4
         self.b_count = 0
         self.b_count_max = 375
+        self.oldScore=0
+        self.nextScore =0
+        self.curScore=0
 
         #Number of rotations for each shape
         self.s_rotations = {
@@ -110,14 +113,15 @@ class Player1(Player):
                     holesCount = holesCount + 1
         return holesCount
 
-    def convertScore(self, score: int) -> float:
-        modScore = score//100  # 25, 100, 400, 1600 -- > 1,4,16, 64 
+    def convertScore(self, board,clonedBoard, score: int) -> float:
+        
+        modScore = (score)//100  # 25, 100, 400, 1600 -- > 1,4,16, 64 
+
         if modScore ==0:
             modScore+=1
         else:
             modScore = log(modScore,2) #4,16,64 -> 2,4,6 
-        
-            if modScore > self.limit:
+            if modScore >= self.limit:
                 modScore = 2**modScore
                 modScore *= 100
             else:
@@ -157,7 +161,7 @@ class Player1(Player):
                 self.rotMove(clonedBoard, Direction.Drop)
 
                 actualScore = clonedBoard.score - board.score
-                scoreConv = self.convertScore(actualScore)
+                scoreConv = self.convertScore(board,clonedBoard,actualScore)
                 colHeights = self.getHeights(clonedBoard)
                 maxHeight = self.getMaxHeight(clonedBoard)
                 bumpiness = self.getBumpinessLvl(colHeights)
@@ -165,10 +169,12 @@ class Player1(Player):
                 avgHeight = sum(colHeights) / 10
 
 
+
                 nextScore = 0
 
                 if recurse:
                     nextScore = self.getMoves(clonedBoard, False)
+
 
                 if clonedBoard.alive == False:
                     totalScores[index] = -8000
@@ -178,8 +184,8 @@ class Player1(Player):
 
                 # totalScores[index] += (maxHeight * 0.2) + (bumpiness * -0.9) + (holesCount * -5) + \
                 #                           (avgHeight * 0.105) + (scoreConv * 1) + (nextScore * 1.2) 
-                totalScores[index] += (maxHeight * 0.2) + (bumpiness * -0.9) + (holesCount * -5.1) + \
-                                          (avgHeight * 0.11) + (scoreConv * 1) + (nextScore * 1.2) 
+                totalScores[index] += (maxHeight * 0.31) + (bumpiness * -0.9) + (holesCount * -5.1) + \
+                                          (avgHeight * 0.155) + (scoreConv * 5) + (nextScore * 6) 
 
 
         topScore = max(totalScores)
