@@ -19,7 +19,7 @@ CELL_WIDTH = 20
 CELL_HEIGHT = 20
 
 EVENT_FORCE_DOWN = pygame.USEREVENT + 1
-FRAMES_PER_SECOND = 60
+FRAMES_PER_SECOND = 480
 
 
 class Block(pygame.sprite.Sprite):

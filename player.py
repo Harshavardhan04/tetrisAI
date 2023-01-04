@@ -184,8 +184,8 @@ class Player1(Player):
 
                 # totalScores[index] += (maxHeight * 0.2) + (bumpiness * -0.9) + (holesCount * -5) + \
                 #                           (avgHeight * 0.105) + (scoreConv * 1) + (nextScore * 1.2) 
-                totalScores[index] += (maxHeight * 0.31) + (bumpiness * -0.9) + (holesCount * -5.1) + \
-                                          (avgHeight * 0.155) + (scoreConv * 8.2) + (nextScore * 8.2) 
+                totalScores[index] += (maxHeight * 0.34) + (bumpiness * -0.95) + (holesCount * -5.4) + \
+                                          (avgHeight * 0.255) + (scoreConv * 8.7) + (nextScore * 8.3) 
 
 
         topScore = max(totalScores)
